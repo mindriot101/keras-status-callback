@@ -4,8 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+keras = "*"
+sqlalchemy = "*"
 
 [dev-packages]
+ipython = "*"
+ipdb = "*"
+"psycopg2-binary" = "*"
 
 [requires]
 python_version = "3.6"
