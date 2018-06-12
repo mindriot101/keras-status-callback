@@ -11,6 +11,7 @@ sqlalchemy = "*"
 ipython = "*"
 ipdb = "*"
 "psycopg2-binary" = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.6"
