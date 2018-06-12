@@ -12,6 +12,7 @@ ipython = "*"
 ipdb = "*"
 "psycopg2-binary" = "*"
 pytest = "*"
+tensorflow = "*"
 
 [requires]
 python_version = "3.6"
