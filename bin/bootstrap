@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+
+command -v pipenv >/dev/null 2>&1 || {
+    echo >&2 "Whoops! You need to install pipenv"
+    echo >&2 "See installation instructions here:"
+    echo >&2 "https://docs.pipenv.org/"
+    exit 1
+}
+
+command -v psql >/dev/null 2>&1 || {
+  echo >&2 "Whoops! You need to install Postgres first.";
+  echo >&2 "We recommend Postgres.app for Mac:";
+  echo >&2 "https://postgresapp.com";
+  exit 1;
+}
+
+echo "==> Installing python packages"
+pipenv install -d
+
+echo "==> Creating user"
+createuser kerascallback 2>/dev/null || true
+
+echo "==> Creating database"
+createdb kerascallback_dev -O kerascallback 2>/dev/null || true
