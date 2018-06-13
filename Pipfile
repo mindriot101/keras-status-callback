@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 keras = "*"
 sqlalchemy = "*"
+scikit-learn = "*"
 
 [dev-packages]
 ipython = "*"
@@ -13,6 +14,10 @@ ipdb = "*"
 "psycopg2-binary" = "*"
 pytest = "*"
 tensorflow = "*"
+scipy = "*"
+numpy = "*"
+pillow = "*"
+python-dotenv = "*"
 
 [requires]
 python_version = "3.6"
