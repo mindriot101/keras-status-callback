@@ -15,6 +15,11 @@ def user():
 
 
 @pytest.fixture
+def password():
+    return os.environ['TEST_PASSWORD']
+
+
+@pytest.fixture
 def dbname():
     return os.environ['TEST_DB']
 
@@ -25,8 +30,8 @@ def dbhost():
 
 
 @pytest.fixture
-def connection_string(user, dbname, dbhost):
-    return f'postgres+psycopg2://{user}@{dbhost}/{dbname}'
+def connection_string(user, dbname, dbhost, password):
+    return f'postgres+psycopg2://{user}:{password}@{dbhost}/{dbname}'
 
 
 @pytest.fixture

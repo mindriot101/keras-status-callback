@@ -40,9 +40,10 @@ y = to_categorical(np.array([0, 1]))
 user = os.environ['TEST_USER']
 db = os.environ['TEST_DB']
 host = os.environ['DB_HOST']
+password = os.environ['TEST_PASSWORD']
 
 callback = StatusCallback(0,
-        f'postgres+psycopg2://{user}@{host}/{db}',
+        f'postgres+psycopg2://{user}:{password}@{host}/{db}',
         verbose=True, reset=True)
 callback.set_data(
         X, y,
