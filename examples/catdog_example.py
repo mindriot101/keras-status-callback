@@ -42,16 +42,24 @@ db = os.environ['TEST_DB']
 host = os.environ['DB_HOST']
 password = os.environ['TEST_PASSWORD']
 
-callback = StatusCallback(0,
-        f'postgres+psycopg2://{user}:{password}@{host}/{db}',
+callback = StatusCallback(run_id=0,
+        db_connection_string=f'postgres+psycopg2://{user}:{password}@{host}/{db}',
+        grayscale=False,
+        undersampling=False,
         verbose=True, reset=True)
+
 callback.set_data(
+        'training',
         X, y,
         good_files,
-        defect_files,
-        [], [],
-        [], [],
-        grayscale=False,
-        undersampling=False)
+        defect_files)
+callback.set_data(
+        'test',
+        None, None,
+        None,
+        None)
+callback.set_data(
+        'validation',
+        None, None, None, None)
 
 model.fit(X, y, epochs=2, callbacks=[callback, ])

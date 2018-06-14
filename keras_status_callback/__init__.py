@@ -11,7 +11,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.engine import Engine
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ENUM, ARRAY
 from sqlalchemy import event
 from sklearn.metrics import confusion_matrix
 import numpy as np
@@ -48,16 +48,30 @@ class EpochStats(Base):
     true_negative = Column(Integer, nullable=False)
     false_positive = Column(Integer, nullable=False)
     false_negative = Column(Integer, nullable=False)
+    data_nature = Column(ENUM('training', 'test', 'validation', name='DataNature'), nullable=False)
 
     run = relationship('RunConfiguration', back_populates='epochs')
 
     __table_args__ = (
-            UniqueConstraint('run_id', 'epoch_id', name='run_epoch'),
+            UniqueConstraint('run_id', 'epoch_id', 'data_nature', name='run_epoch_nature'),
             )
 
 
+class DatasetDescription(object):
+    def __init__(self, name, X, y, good_files, defect_files):
+        self.name = name
+        self.X = X
+        self.y = y
+        self.good_files = good_files
+        self.defect_files = defect_files
+
+
 class StatusCallback(Callback):
-    def __init__(self, run_id, db_connection_string, verbose=False, reset=False):
+
+    ALLOWED_NAMES = {'training', 'test', 'validation'}
+
+    def __init__(self, run_id, db_connection_string, undersampling, grayscale,
+            verbose=False, reset=False):
         self.engine = create_engine(db_connection_string, echo=verbose)
         if reset:
             Base.metadata.drop_all(self.engine)
@@ -67,55 +81,50 @@ class StatusCallback(Callback):
         self.session = Session()
 
         self.run_id = run_id
-        self.X = None
-        self.y = None
-        self.training_good_files = None
-        self.training_defect_files = None
-        self.validation_good_files = None
-        self.validation_defect_files = None
-        self.test_good_files = None
-        self.test_defect_files = None
-        self.grayscale = None
-        self.undersampling = None
-
-        self.data_set = False
-
-    def set_data(self,
-            X, y,
-            training_good_files,
-            training_defect_files,
-            validation_good_files,
-            validation_defect_files,
-            test_good_files,
-            test_defect_files,
-            grayscale,
-            undersampling):
-
-        self.X = X
-        self.y = y
-
-        self.training_good_files = training_good_files
-        self.training_defect_files = training_defect_files
-        self.validation_good_files = validation_good_files
-        self.validation_defect_files = validation_defect_files
-        self.test_good_files = test_good_files
-        self.test_defect_files = test_defect_files
+        self.training = None
+        self.test = None
+        self.validation = None
         self.grayscale = grayscale
         self.undersampling = undersampling
-        self.data_set = True
+
+    def set_data(self,
+            name,
+            X, y,
+            good_files, defect_files):
+
+        if name not in self.ALLOWED_NAMES:
+            raise ValueError('Dataset name not in allowed names: {}'.format(self.ALLOWED_NAMES))
+
+        dataset= DatasetDescription(
+                name=name,
+                X=X,
+                y=y,
+                good_files=good_files,
+                defect_files=defect_files)
+
+        if name == 'training':
+            self.training = dataset
+        elif name == 'test':
+            self.test = dataset
+        elif name == 'validation':
+            self.validation = dataset
+
+    @property
+    def data_set(self):
+        return self.training is not None and self.test is not None and self.validation is not None
 
     def on_train_begin(self, logs=None):
         if not self.data_set:
-            raise ValueError('Initial run data not set. Please call `set_data` first')
+            raise ValueError('Initial run data not set. Please call `set_data` for each training/test/validation dataset first')
 
         self.run_config = RunConfiguration(
                 run_id=self.run_id,
-                training_good_files = self.training_good_files,
-                training_defect_files = self.training_defect_files,
-                validation_good_files = self.validation_good_files,
-                validation_defect_files = self.validation_defect_files,
-                test_good_files = self.test_good_files,
-                test_defect_files = self.test_defect_files,
+                training_good_files = self.training.good_files,
+                training_defect_files = self.training.defect_files,
+                validation_good_files = self.validation.good_files or [],
+                validation_defect_files = self.validation.defect_files or [],
+                test_good_files = self.test.good_files or [],
+                test_defect_files = self.test.defect_files or [],
                 serialized_model = self.model.to_json(),
                 grayscale = self.grayscale,
                 undersampling = self.undersampling,
@@ -124,21 +133,33 @@ class StatusCallback(Callback):
         self.session.commit()
 
     def on_epoch_end(self, epoch, logs=None):
-        y_pred = self.model.predict(self.X)
-        y_true, y_pred = self._format_y(self.y), self._format_y(y_pred)
-        mat = confusion_matrix(y_true=y_true, y_pred=y_pred)
-        tn, fp, fn, tp = list(map(int, mat.ravel()))
+        for data_nature in ['training', 'test', 'validation']:
+            X = getattr(self, data_nature).X
+            y = getattr(self, data_nature).y
 
-        epoch_stats = EpochStats(
-                run_id=self.run_id,
-                epoch_id=epoch,
-                true_positive = tp,
-                true_negative = tn,
-                false_positive = fp,
-                false_negative = fn,
-                )
-        self.session.add(epoch_stats)
+            if X is None or y is None:
+                continue
+
+            y_pred = self.model.predict(X)
+            y_true, y_pred = self._format_y(y), self._format_y(y_pred)
+            mat = confusion_matrix(y_true=y_true, y_pred=y_pred)
+            tn, fp, fn, tp = list(map(int, mat.ravel()))
+
+            epoch_stats = EpochStats(
+                    run_id=self.run_id,
+                    data_nature=data_nature,
+                    epoch_id=epoch,
+                    true_positive = tp,
+                    true_negative = tn,
+                    false_positive = fp,
+                    false_negative = fn,
+                    )
+            self.session.add(epoch_stats)
+
         self.session.commit()
+
+    def _compute_stats(self, X, y):
+        return None
 
 
     def _format_y(self, y):

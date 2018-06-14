@@ -41,7 +41,7 @@ def run_id():
 
 @pytest.fixture
 def callback(connection_string, run_id):
-    return K.StatusCallback(run_id, connection_string, verbose=True, reset=True)
+    return K.StatusCallback(run_id, connection_string, verbose=True, reset=True, undersampling=False, grayscale=False)
 
 
 def test_creating_tables(callback, user, dbname):
