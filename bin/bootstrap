@@ -28,7 +28,7 @@ pipenv install -d
 . .env
 
 echo "==> Creating user"
-createuser $TEST_USER 2>/dev/null || true
+createuser $TEST_USER
 
 echo "==> Creating database"
-createdb $TEST_DB -O $TEST_USER 2>/dev/null || true
+createdb $TEST_DB -O $TEST_USER
