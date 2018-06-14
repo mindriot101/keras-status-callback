@@ -111,7 +111,7 @@ class StatusCallback(Callback):
 
     @property
     def data_set(self):
-        return self.training is not None and self.test is not None and self.validation is not None
+        return self.training is not None or self.test is not None or self.validation is not None
 
     def on_train_begin(self, logs=None):
         if not self.data_set:
@@ -121,10 +121,10 @@ class StatusCallback(Callback):
                 run_id=self.run_id,
                 training_good_files = self.training.good_files,
                 training_defect_files = self.training.defect_files,
-                validation_good_files = self.validation.good_files or [],
-                validation_defect_files = self.validation.defect_files or [],
-                test_good_files = self.test.good_files or [],
-                test_defect_files = self.test.defect_files or [],
+                validation_good_files = self.validation.good_files if self.validation is not None and self.validation.good_files is not None else [],
+                validation_defect_files = self.validation.defect_files if self.validation is not None and self.validation.defect_files is not None else [],
+                test_good_files = self.test.good_files if self.test is not None and self.test.good_files is not None else [],
+                test_defect_files = self.test.defect_files if self.test is not None and self.test.defect_files is not None else [],
                 serialized_model = self.model.to_json(),
                 grayscale = self.grayscale,
                 undersampling = self.undersampling,
@@ -134,8 +134,12 @@ class StatusCallback(Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         for data_nature in ['training', 'test', 'validation']:
-            X = getattr(self, data_nature).X
-            y = getattr(self, data_nature).y
+            collection = getattr(self, data_nature, None)
+            if collection is None:
+                continue
+
+            X = collection.X
+            y = collection.y
 
             if X is None or y is None:
                 continue
