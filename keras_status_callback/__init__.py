@@ -2,6 +2,7 @@ from keras.callbacks import Callback
 import numpy as np
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from sklearn.metrics import confusion_matrix
 
 from .models import Base, RunConfiguration, EpochStats
 

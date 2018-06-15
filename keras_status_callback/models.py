@@ -12,7 +12,6 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.dialects.postgresql import ENUM, ARRAY
 from sqlalchemy import event
-from sklearn.metrics import confusion_matrix
 import datetime
 
 Base = declarative_base()
